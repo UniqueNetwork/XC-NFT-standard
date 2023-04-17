@@ -16,7 +16,7 @@
     * [The flow using the Staging Area pallet](#the-flow-using-the-staging-area-pallet)
     * [The Staging Area pallet's pseudocode](#the-staging-area-pallets-pseudocode)
 
-### Introduction
+## Introduction
 
 This document describes the standard of cross-chain transfers of immutable (unmodifiable) NFTs.
 
@@ -30,15 +30,15 @@ Therefore, the *originating chain* is the *reserve chain (R)* in terms of the re
 
 >You can read about the reserve-based transfer model [here](https://polkadot.network/blog/xcm-the-cross-consensus-message-format#-some-initial-use-cases).
 
-Even if an NFT was modifiable on the *originating chain* before the cross-chain transfer, the NFT **must** remain immutable when it is transferred to another chain, since the derivative asset located on non-reserve chain **must always** correspond to the real asset located on the reserve chain.
+Even if an NFT was modifiable on the *originating chain* before the cross-chain transfer, the NFT **must** remain immutable when it is transferred to another chain, since the derivative asset located on a non-reserve chain **must always** correspond to the real asset located on the reserve chain.
 
-However, if the NFT is returned to the reserve chain (meaning that the given NFT no longer backs a derivative asset), then the reserve chain **may** modify the NFT.
+However, if the NFT is cross-transferred back to the reserve chain (meaning that the given NFT no longer backs a derivative asset), then the reserve chain **may** modify the NFT.
 
 >Note: the teleportation of NFTs where two chains participating in the cross-chain transfer mutually trust each other is out of the scope of this document.
 
 NFTs are identified between chains using some sort of *cross-chain NFT ids* (such as Polkadot XCM `AssetId`).
 
-### Metadata transfer
+## Metadata transfer
 
 NFTs are unique objects with associated data (the NFT metadata).
 Unlike fungible tokens, transferring the non-fungible token itself is not enough because the valuable data is not the number of tokens (which is always 1 in the case of NFTs) but the metadata associated with them.
@@ -49,18 +49,18 @@ However, there are still two remaining problems:
 1. The transfer of the authentic metadata blob
 2. Different metadata formats
 
-#### The transfer of the authentic metadata blob
+### The transfer of the authentic metadata blob
 
 Considering that on-chain mechanisms for cross-chain transfers (such as Polkadot XCM) could be limited in bandwidth, we can't send the potentially giant metadata blob via them. Hence we need to transfer the metadata blob off-chain.
-However, we can still transfer some small-sized data on-chain to verify the authenticity of data provided off-chain. So, we should first transfer the *cross-chain NFT id* and the metadata hash on-chain, and only then transfer the metadata blob off-chain.
+However, we can still transfer some small-sized data on-chain to verify the authenticity of data provided off-chain. So, we should first transfer the *cross-chain NFT id* and data that compactly represent the NFT's metadata (the metadata hash) and only then transfer the metadata blob off-chain.
 
-The *originating chain* should transfer the hash representing the authentic metadata blob to the *destination non-reserve chain* via the cross-chain transfer mechanism.
+The *originating chain* should transfer *cross-chain NFT id* the hash representing the authentic metadata blob to the *destination non-reserve chain* via the cross-chain transfer mechanism such as Polkadot XCM.
 
 Then, the destination chain should verify the data provided off-chain: compute the hash of the data and compare it to the metadata hash received from the *originating chain*.
 
 If the computed hash is correct, the destination chain can mint the derivative NFT with the provided metadata.
 
-#### Different metadata formats
+### Different metadata formats
 
 The *destination non-reserve chain* should be able to interpret the off-chain provided metadata blob correctly, so the destination chain should know the blob format ahead of time.
 
@@ -68,53 +68,53 @@ Nevertheless, several metadata formats exist, and more can appear in the future.
 
 For further details, see the [*Metadata Container* description](./metadata-container.md). 
 
-#### The metadata hashing
+### The metadata hashing
 
 The hashing algorithm is defined by the [*Metadata Container's*](./metadata-container.md) `hashingAlgorithmId` field.
 The hash **must** be computed based on the SCALE encoded *Metadata Container*.
 
-### Transfer Process
+## Transfer Process
 
 Since the metadata blob is transferred *after* the *cross-chain NFT id* and the metadata hash, the *destination non-reserve chain* doesn't know if the metadata's format is supported. Also, even if the format is supported, the destination chain can have restrictive rules regarding the NFT metadata contents.
 
 Because of the above, there is a need to introduce the *Staging Area* and the *Clearance Procedure*.
 
-#### The Staging Area
+### The Staging Area
 
 The *Staging Area* is a dedicated place for *cross-chain NFT ids* and metadata hashes to be sent to another chain or for those received from the *originating chain*.
 
-Although the *Staging Area* seems to be optional on the *originating chain*, it should have one to separate concerns: the "real" NFT on the *originating chain* should be moved to the *Staging Area*'s account, thus the NFT is "taken" from the business logic of the *originating chain* and the *Staging Area* guarantees that NFT won't change while the NFT is backing a derivative on another chain (i.e., while it is not returned to the *originating chain*).
+Although the *Staging Area* seems to be optional on the *originating chain*, it should have the *Staging Area* to separate concerns: when an NFT is cross-transferred to another chain, the "real" NFT on the *originating chain* should be moved to the *Staging Area*'s account, thus the NFT is "taken" from the business logic of the *originating chain* and the *Staging Area* guarantees that NFT won't change while the NFT is backing a derivative on another chain (i.e., while it is not cross-transferred back to the *originating chain*).
 
 Also, the chain that is the *originating chain* for one set of NFTs could be non-originating for others, so it **must** have the Staging Area.
 
-###### On a non-reserve chain
+#### On a non-reserve chain
 
-Derivative NFTs should be initially minted inside the *Staging Area* of the *destination non-reserve chain* to the *Beneficiary* of the cross-chain transfer. The *Staging Area* **must** know who is the owner of the NFT (the owner is the *Beneficiary*).
+Derivative NFTs should be initially minted inside the *Staging Area* of the *destination non-reserve chain* to the *Beneficiary* of the cross-chain transfer. The *Staging Area* **must** contain information about who is the owner of the NFT (the owner is the *Beneficiary*).
 
 While the derivative NFT is located inside the *Staging Area*, the owner can do exactly two mutually exclusive actions:
 * Pass the derivative NFT through the *Clearance Procedure*.
 * Cross-transfer the NFT somewhere else.
 
-The derivative NFT **must** be located in the *Staging Area* until the owner either pass it through the *Clearance Procedure* or cross-transfers it to another chain.
+The derivative NFT **must** remain in the *Staging Area* until the owner either pass it through the *Clearance Procedure* or cross-transfers it to another chain.
 
 Either of the two actions above **must** lead to removing the derivative NFT from the *Staging Area*.
 
-###### On the *originating chain*
+#### On the *originating chain*
 
 Before an NFT could be transffered to another chain, it should be moved to *Staging Area*'s account, to give the *Staging Area* the control of the NFT. The *Staging Area* guarantees that the NFT won't change while the NFT is backing a derivative on another chain.
 
-The *Staging Area* **must** know who is the owner of the NFT.
+The *Staging Area* **must** contain information about who is the owner of the NFT.
 
 While the NFT is located inside the *Staging Area*, the owner can do exactly two mutually exclusive actions:
 * Return the NFT to the regular NFT logic of the *originating chain*.
 * Cross-transfer the NFT somewhere else.
 
-The "return" operation shouldn't require the metadata checking, since the NFT is native for the *originating chain* and the *Staging Area* guarantees that the metadata didn't change (i.e., the *Clearance Procedure* **must not** be required).
+The "return" operation shouldn't require the metadata checking since the NFT is native to the *originating chain* and the *Staging Area* guarantees that the metadata didn't change (i.e., the *Clearance Procedure* **must not** be required).
 
-Only the "return" action **must** lead to removing the derivative NFT from the *Staging Area*.
-The "real" NFT **must always** remain in the *Staging Area* of the reserve chain until the NFT is returned to the reserve chain.
+The "return" action **must** lead to removing the derivative NFT from the *Staging Area*.
+However, when the owner cross-transfers the NFT to another chain, the "real" NFT **must** remain in the *Staging Area* of the reserve chain until the NFT is cross-transferred back.
 
-#### The Clearance Procedure
+### The Clearance Procedure
 
 When the derivative NFT is located in the *Staging Area*, the *destination non-reserve chain* can execute the *Clearance Precedure* of the given metadata blob for the given NFT on the *Beneficiery's* demand.
 
@@ -141,16 +141,18 @@ Let's describe a journey of a single NFT, beginning with the *originating chain*
 * A cross-transfer from the non-reserve Chain A to the non-reserve Chain B
 * A cross-transfer from the non-reserve Chain B back to the reserve chain
 
-#### Reserve Chain → Non-reserve Chain A
+### Reserve Chain → Non-reserve Chain A
 
-###### On the reserve chain
+#### On the reserve chain
 
 1. Move the NFT to the *Staging Area* and compute the hash of the NFT's metadata container on-chain
-2. Cross-transfer the NFT to the non-reserve Chain A: transfer the *cross-chain NFT id* and the computed hash to Chain A, and make Chain A's sovereign account the owner of the NFT inside the *Staging Area*.
+2. Cross-transfer the NFT to the non-reserve Chain A:
+    * make Chain A's sovereign account the owner of the NFT inside the *Staging Area* of the reserve chain
+    * send the *cross-chain NFT id* and the computed metadata hash to Chain A
 
 Note: After the cross-transfer, the NFT **must** remain in the *Staging Area* **of the reserve chain.**
 
-###### On the non-reserve Chain A
+#### On the non-reserve Chain A
 
 1. Mint the NFT inside the *Staging Area* upon receiving the *cross-chain NFT id* and the metadata hash.
 2. The derivative NFT remains in the *Staging Area* until one of the following actions is performed by the owner of the NFT:
@@ -158,40 +160,42 @@ Note: After the cross-transfer, the NFT **must** remain in the *Staging Area* **
 
     * The owner cross-transfers the NFT to another chain. The NFT is removed from the *Staging Area*.
 
-#### Non-reserve Chain A → Another non-reserve Chain B
+### Non-reserve Chain A → Another non-reserve Chain B
 
-###### On Chain A
+#### On Chain A
 
 1. If the owner passed the NFT through the *Clearance Procedure*, they should first move the NFT to the *Staging Area*.
-2. When the NFT is located inside the *Staging Area*, the owner can cross-transfer it to another non-reserve Chain B. Chain A asks the reserve chain to transfer the "real" NFT to Chain B. The NFT **must** be burned on Chain A since the "real" NFT will no longer back it on the reserve chain.
+2. When the NFT is located inside the *Staging Area*, the owner can cross-transfer it to another chain. For instance, they can transfer the NFT to the non-reserve Chain B. Chain A asks the reserve chain to transfer the "real" NFT to Chain B. The derivative NFT **must** be burned on Chain A since the "real" NFT will no longer back it on the reserve chain.
 
-###### On the reserve chain
+#### On the reserve chain
 
 Upon receiving the transfer request from Chain A, the reserve chain will update the owner of the NFT inside the *Staging Area* (Chain B's sovereign account will be the new owner) and send the *cross-chain NFT id* and the metadata hash to Chain B.
 
-###### On Chain B
+#### On Chain B
 
 1. Mint the NFT inside the *Staging Area* upon receiving the *cross-chain NFT id* and the metadata hash.
 2. The second step is the same as with Chain A when receiving an NFT.
 
-#### Non-reserve Chain B → Reserve Chain
+### Non-reserve Chain B → Reserve Chain
 
-###### On Chain B
+#### On Chain B
 
 Both steps are the same as with Chain A when cross-transferring an NFT.
 
-###### On the reserve chain
+#### On the reserve chain
 
 1. Upon receiving the transfer request from Chain B, the reserve chain will update the owner of the NFT inside the *Staging Area*.
 2. The owner of the NFT can then either:
     * *Return* the NFT into the regular NFT logic of the reserve chain (hence, removing the NFT from the *Staging Area*).
     * Or cross-transfer the NFT to another chain.
 
-### Implementation considerations using Substrate and Polkadot XCM
+## Implementation considerations using Substrate and Polkadot XCM
 
-This section describes the implementation considerations on implementing the standard using the `Substrate` and the `Polkadot XCM`.
+This section describes the considerations on implementing the standard using the `Substrate` and the `Polkadot XCM`.
 
-##### Cross-chain NFT identification
+It is **only an example**, not the standard itself. The standard is described in the above sections.
+
+### Cross-chain NFT identification
 
 To identify an asset between different chains, the Polkadot XCM uses the `AssetId` type. 
 
@@ -207,7 +211,7 @@ pub enum AssetId {
 
 We can use the `Concrete` variant of the `AssetId` to identify an NFT.
 
-For example, if an NFT could be identified on *some chain* using two number (a collection id and an item id), we could identify that NFT between chains like the following:
+For example, if an NFT could be identified on *some chain* using two numbers (a collection id and an item id), we could identify that NFT between chains like the following:
 ```rust
 AssetId::Concrete(MultiLocation {
     parents: 1,
@@ -219,7 +223,7 @@ AssetId::Concrete(MultiLocation {
 })
 ```
 
-Or an NFT could be identified by an ERC-721 contract address and an item id:
+Or if an NFT could be identified by an ERC-721 contract address and an item id:
 ```rust
 AssetId::Concrete(MultiLocation {
     parents: 1,
@@ -233,6 +237,10 @@ AssetId::Concrete(MultiLocation {
     ),
 })
 ```
+
+Thus, the structure of the `AssetId` for NFTs should consist of two parts:
+* The reserve chain part: the first component of the `interior`
+* the NFT id identifying the NFT on the reserve chain: the rest of the components of the `interior`
 
 However, the XCM uses not only the `AssetId` during the cross-transfer. The XCM commands for transfers such as `WithdrawAsset`, `InitiateReserveWithdraw`, and `TransferReserveAsset` use the `MultiAsset` type.
 
@@ -254,46 +262,49 @@ pub enum Fungibility {
 }
 ```
 
-As stated in the doc-comment of the `fun` field, it is the secondary asset identifier. Such a secondary identifier should be the metadata hash for two reasons:
+As stated in the doc-comment of the `fun` field, it is the secondary asset identifier in the case of non-fungibles. Such a secondary identifier should be the metadata hash for two reasons:
 * We can easily send the metadata hash of the NFT simultaneously with its asset id.
-* The metadata hash represents the state of the NFT. The NFT's state could be modified when the NFT is located on its *originating chain* (on the reserve chain). Having the metadata hash as a part of the cross-chain identifier makes the NFT change made on the reserve chain noticeable during the transfer (e.g., the scanners might notice that the NFT got changed on the reserve chain).
+* The metadata hash represents the state of the NFT. The NFT's state could be modified when the NFT is located on its *originating chain* (on the reserve chain). Having the metadata hash as a part of the cross-chain identifier, we can identify a particular NFT in a specific state between chains.
 
-Since we should use the `AssetInstance` type for storing an NFT's metadata container hash, we can call the metadata hash the "instance hash".
+Since we should use the `AssetInstance` type for storing the NFT's metadata container hash, we can call the metadata hash the "instance hash".
 
-##### The Staging Area pallet
+### The Staging Area pallet
 
 The *Staging Area* can be implemented as a dedicated pallet.
 
-This pallet should have a storage for NFTs an extrinsic that represents the *Clearance Procedure*.
+This pallet should have:
+* a storage for NFTs identified by the `AssetId`. The storage should contain all the required infromation about NFTs such as the owner and the instance hash
+* an extrinsic that represents the *Clearance Procedure*
 
 The *Clearance Procedure* extrinsic should compare the hash stored in the *Staging Area's* storage against the computed hash of the metadata blob provided via the extrinsic's argument.
 
 Also, the pallet should have two additional extrinsics:
 * one for moving the NFT to the *Staging Area* and computing the instance hash
-* and another one for returning the NFT if the *Clearance Procedure* is not required
+* and another one for returning the NFT to a user if the *Clearance Procedure* is not required
 
-The *Staging Area* pallet should use another pallet (via an associated type from the pallet's `Config`) that is responsible for the standard NFT operations:
+The *Staging Area* pallet should use the NFT pallet (via an associated type from the pallet's `Config`) that is responsible for the standard NFT operations:
 * mint NFTs
 * transfer NFTs between between different sovereign accounts
 * transfer NFTs from a user's account to the *Staging Area*'s account and vice cersa
 
-Thus, the *Staging Area* pallet could be used with different NFT pallets, e.g. with Parity's Uniques v2 pallet.
+Thus, the *Staging Area* pallet could be used with different NFT pallets, e.g. with Parity's `Nfts` pallet.
 
 Moreover, there should be an implementation of the `TransactAsset` trait, so that the XCM executor can act appropriatly when dealing with NFT assets.
 The *Staging Area* pallet can implement the `TransactAsset` trait itself to act like an XCM adapter for NFTs.  
 
-The commented pseudocode of such a pallet is provided [below](#the-staging-area-pallets-pseudocode). It uses the Substrate's `nonfungibles_v2` traits to communicate with an NFT pallet and other standard traits for XCM (such as `MatchesNonFungibles`).
+The commented pseudocode of such a pallet is provided [below](#the-staging-area-pallets-pseudocode). It uses the Substrate's `nonfungibles_v2` traits to communicate with the NFT pallet and other standard XCM traits (such as `MatchesNonFungibles`).
 
 Any non-standard trait or type is defined in the pseudocode itself.
 
-##### The flow using the Staging Area pallet
+### The flow using the Staging Area pallet
 
 To illustrate the usage of the *Staging Area* pallet, let's map each action described in [the flow](#the-flow) section to extrinsic calls of the *Staging Area* pallet and XCM Programs execution.
 
-###### Reserve Chain → Non-reserve Chain A
+#### Reserve Chain → Non-reserve Chain A
 
-*On the reserve chain*:
-1. The owner calls `prepare_for_xc_transfer`. This function will move the NFT into the *Staging Area* and compute the instance hash.
+##### On the reserve chain
+
+1. The owner calls `prepare_for_xc_transfer`. This extrinsic will move the NFT into the *Staging Area* and compute the instance hash.
    It should be called with the following parameters:
     * `collection_id`: the collection id of the NFT
     * `item_id`: the item id of the NFT
@@ -360,9 +371,7 @@ To illustrate the usage of the *Staging Area* pallet, let's map each action desc
     }
    ```
 
-----
-
-*On Chain A:*
+##### On Chain A
 
 1. After executing the `DepositAsset` command from the above, the NFT will be minted inside the *Staging Area*.
 2. The derivative NFT remains in the *Staging Area* until one of the following actions is performed by the owner of the NFT:
@@ -372,20 +381,21 @@ To illustrate the usage of the *Staging Area* pallet, let's map each action desc
     
     * The owner cross-transfers the NFT to another chain. See the 2nd step of the "Non-reserve Chain A → Another non-reserve Chain B" section.
 
-----
+#### Non-reserve Chain A → Another non-reserve Chain B
 
-###### Non-reserve Chain A → Another non-reserve Chain B
-
-*On Chain A:*
+##### On Chain A
 
 1. If the owner passed the NFT through the *Clearance Procedure*, they should first move the NFT to the *Staging Area*. To do so, the owner should call the `prepare_for_xc_transfer` extrinsic with the following parameters:
     * `collection_id`: the collection id of the NFT (the collection id corresponds to Chain A's native collection where the derivative NFT is located)
     * `item_id`: the item id of the NFT (the item id corresponds to Chain A's native id for the derivative NFT)
 
-2. When the NFT is located inside the *Staging Area*, the owner can cross-transfer it to another non-reserve Chain B. An XCM program like the following should be executed:
+2. When the NFT is located inside the *Staging Area*, the owner can cross-transfer it to another chain. For instance, they can transfer the NFT to the non-reserve Chain B.
+An XCM program like the following should be executed:
     ```rust
     // The `WithdrawAsset` will check if the NFT is located in the Staging Area.
     // And it will also check if the `instance_hash` is correct.
+    //
+    // Since Chain A is NOT the reserve chain, this command will burn the derivative NFT.
     // (See the `TransactAsset` trait implementation in the pallet's pseudocode).
     WithdrawAsset(vec![
         MultiAsset {
@@ -398,8 +408,7 @@ To illustrate the usage of the *Staging Area* pallet, let's map each action desc
         },
     ]),
 
-    // The `InitiateReserveWithdraw` command will burn the NFT on our side
-    // and ask the reserve chain to transfer it to Chain B's user. 
+    // The `InitiateReserveWithdraw` asks the reserve chain to transfer it to Chain B's user. 
     InitiateReserveWithdraw {
         assets: MultiAssetFilter::Wild(All),
         reserve: MultiLocation {
@@ -416,7 +425,7 @@ To illustrate the usage of the *Staging Area* pallet, let's map each action desc
                 weight_limit: WeightLimit::Unlimited,
             },
 
-            // The `TransferReserveAsset` will modify the `owner` of the NFT in the Staging Area
+            // The `TransferReserveAsset` will modify the `owner` of the NFT in the Staging Area of the reserve chain
             // and send the message to Chain B.
             TransferReserveAsset {
                 assets: vec![
@@ -463,29 +472,27 @@ To illustrate the usage of the *Staging Area* pallet, let's map each action desc
     }
     ```
 
-----
-
-*On the reserve chain:*
+##### On the reserve chain
 
 During the execution of the `TransferReserveAsset` XCM command, the reserve chain will update the NFT owner inside the *Staging Area* (see the `TransactAsset::transfer_asset` fn). Then, the XCM executor will send the "deposit asset" XCM message to Chain B.
 
-----
-
-*On Chain B:*
+##### On Chain B
 
 1. After executing the `DepositAsset` command from the above, the NFT will be minted inside the *Staging Area*.
 2. The second step is the same as with Chain A when receiving an NFT.
 
-###### Non-reserve Chain B → Reserve Chain
+#### Non-reserve Chain B → Reserve Chain
 
-*On Chain B:*
+##### On Chain B
 
 1. The first step is the same is with Chain A when cross-transferring an NFT.
 2. The second step is the same is with Chain A by its semantics (we are cross-transferring the NFT), but the XCM program is different because we are sending the NFT back to the reserve chain.
     ```rust
     // The `WithdrawAsset` will check if the NFT is located in the Staging Area.
     // And it will also check if the `instance_hash` is correct.
-    // (See the `TransactAsset` trait implementation in the pallet's pseudocode).
+    //
+    // Since Chain B is NOT the reserve chain, this command will burn the derivative NFT.
+    // (See the `TransactAsset` trait  implementation in the pallet's pseudocode).
     WithdrawAsset(vec![
         MultiAsset {
             id: FEE_ASSET_ID,
@@ -497,7 +504,7 @@ During the execution of the `TransferReserveAsset` XCM command, the reserve chai
         },
     ]),
 
-    // Burn the NFT on our side, ask the reserve chain to transfer it to the beneficiary account
+    // Ask the reserve chain to transfer the NFT to the beneficiary's account
     InitiateReserveWithdraw {
         assets: MultiAssetFilter::Wild(All),
         reserve: MultiLocation {
@@ -515,8 +522,8 @@ During the execution of the `TransferReserveAsset` XCM command, the reserve chai
             },
             // Deposit the NFT (alongside of the remaining fungible tokens).
             //
-            // The `DepositAsset` will create the NFT inside the *Staging Area*
-            // and set its owner to the `BENEFICIARY_ACCOUNT`. 
+            // The `DepositAsset` will set the NFT's owner to the `BENEFICIARY_ACCOUNT`
+            // inside the Staging Area of the reserve chain. 
             DepositAsset {
                 assets: MultiAssetFilter::Wild(All),
                 beneficiary: MultiLocation {
@@ -531,9 +538,7 @@ During the execution of the `TransferReserveAsset` XCM command, the reserve chai
     }
     ```
 
-----
-
-*On the reserve chain:*
+##### On the reserve chain
 
 1. After executing the `DepositAsset` command from the above, the NFT will granted to the *Beneficiary* inside the *Staging Area*.
 
@@ -541,9 +546,7 @@ During the execution of the `TransferReserveAsset` XCM command, the reserve chai
     * *Return* the NFT into the regular NFT logic of the reserve chain: the owner just need to call the `return_nft` extrinsic with the only parameter `xc_asset_id`: the XCM `AssetId` of the NFT. 
     * Cross-transfer the NFT to another chain. This step is exactly the same as in the "Reserve Chain → Non-reserve Chain A" section.
 
-----
-
-##### The Staging Area pallet's pseudocode
+### The Staging Area pallet's pseudocode
 
 ```rust
 // The pseudocode of the Staging Area pallet.
@@ -684,7 +687,7 @@ pub mod pallet {
         type WeightInfo: WeightInfo<Self>
     };
 
-    /// AssetId -> StagingNftInfo.
+    /// XCM AssetId -> StagingNftInfo.
     #[pallet::storage]
     pub type StagingNfts<T: Config> =
         StorageMap<
@@ -698,11 +701,10 @@ pub mod pallet {
     #[pallet::error]
     pub enum Error<T> {
         UnexpectedNftMetadata,
+        UnexpectedNftReturn,
         InvalidMetadata,
         NoPermission,
         UnknownItem,
-        UnexpectedNftReturn,
-        UnexpectedTransfer,
     }
     
 
@@ -785,7 +787,7 @@ pub mod pallet {
                 instance_hash: instance_hash.clone(),
 
                 // the owner can XC-transfer that NFT to another chain
-                // or they can return that NFT back if they want to.
+                // or they can return that NFT back into the `NftPallet` if they want to.
                 owner,
 
                 // there is no need to check the metadata
@@ -813,7 +815,7 @@ pub mod pallet {
             metadata_blob: MetadataBlob<T>,
         ) -> DispatchResult {
             let nft_info = <StagingNfts<T>>::get(&xc_asset_id)
-                .ok_or(<Error<T>>::UnexpectedNftMetadata)?;
+                .ok_or(<Error<T>>::UnknownItem)?;
 
             let who = ensure_signed!(origin)?;
 
@@ -852,8 +854,8 @@ pub mod pallet {
             // The `ItemConfig` contains the metadata container and the NFT MultiAsset
             // (contaning the XCM AssetId and the instance hash).
             //
-            // The `NftPallet` is responsible for saving the XCM AssetId, the instance hash,
-            // and the metadata container in the native representation.
+            // The `NftPallet` is responsible for saving metadata container in the native representation. 
+            // Also, it should remember the XCM AssetId and the instance hash to facilitate the `XcNftAssetId` mapping implementation.
             //
             // It also could do additional checks if needed.
             <T::NftPallet as nonfungibles_v2::Mutate<T::AccountId, ItemConfig<T::MaxPayloadSize>>>::mint_into(
@@ -892,14 +894,14 @@ pub mod pallet {
             let who = ensure_signed!(origin)?;
 
             let nft_info = <StagingNfts<T>>::get(&xc_asset_id)
-                .ok_or(<Error<T>>::UnexpectedNftReturn)?;
+                .ok_or(<Error<T>>::UnknownItem)?;
 
             ensure!(who == nft_info.owner, <Error<T>>::NoPermission);
 
             /// The NFT metadata must be known.
             let (collection_id, item_id) = match nft_info.status {
                 StagingStatus::Known(col_id, item_id) => (col_id, item_id),
-                _ => return Err(<Error<T>>::NoPermission),
+                _ => return Err(<Error<T>>::UnexpectedNftReturn),
             };
 
             <T::NftPallet as nonfungibles_v2::Transfer<T::AccountId>>::transfer(
@@ -962,8 +964,8 @@ impl<T: Config> TransactAsset for Pallet<T> {
                         owner: who.clone(),
                         
                         // The NFT is not Known, so we must "check-in" the NFT's metadata.
-                        status: StagingStatus::Deposited,}
-                    ))
+                        status: StagingStatus::Deposited,
+                    }))
                 };
                 
 
@@ -998,14 +1000,14 @@ impl<T: Config> TransactAsset for Pallet<T> {
         };
 
         let nft_info = <StagingNfts<T>>::get(&asset_id)
-            .ok_or(XcmError::::NotWithdrawable)?;
+            .ok_or(XcmError::::AssetNotFound)?;
 
         // Only the owner can withdraw the NFT.
-        ensure!(who == nft_info.owner, XcmError::::NotWithdrawable);
+        ensure!(who == nft_info.owner, XcmError::::FailedToTransactAsset("not an owner"));
 
         // The instance hash is a part of the NFT MultiAsset.
         // It must be the same as the hash computed during the preparation for XC-transfer.
-        ensure!(instance_hash == nft_info.instance_hash, XcmError::::NotWithdrawable);
+        ensure!(instance_hash == nft_info.instance_hash, XcmError::::FailedToTransactAsset("invalid instance hash"));
 
         if T::IsNative::contains(&asset_id) {
             // on a reserve chain we shouldn't burn the NFT.
