@@ -5,7 +5,7 @@ There are several NFT metadata formats, and there could be many new formats in t
 To transfer an NFT to another chain and to be free in choosing a metadata format,
 some meta-format is needed to "tunnel" different NFT metadata formats.
 
-The possible meta-format a.k.a **metadata container** may be the following:
+The possible meta-format, a.k.a **metadata container**, may be the following:
 
 ##### JSON Schema
 ```json
@@ -41,12 +41,12 @@ The possible meta-format a.k.a **metadata container** may be the following:
 
 The hashing algorithm identifier's meaning is defined as follows:
 
-* `0` represents the Blake2 hashing algorithm with 256-bit digest.
-* if the `hashing algorithm identifier` has any other values, it is invalid.
+* `0` represents the Blake2 hashing algorithm with a 256-bit digest.
+* If the `hashing algorithm identifier` has any other values, it is invalid.
 
-Note: new hashing algorithms could be added later.
+Note: New hashing algorithms could be added later.
 
-You can read about the hashing algorthm's purpose in the [Immutable XC-NFT Standard](./immutable-xc-nft-standard.md).
+You can read about the hashing algorithm's purpose in the [Immutable XC-NFT Standard](./immutable-xc-nft-standard.md).
 
 ##### Rust representation
 ```rust
