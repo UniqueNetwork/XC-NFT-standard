@@ -9,11 +9,11 @@
 * [Transfer process](#receiving-an-nft-on-a-non-reserve-chain)
     * [The Staging Area](#the-staging-area)
     * [The Clearance Procedure](#the-clearance-procedure)
-    * [The flow](#the-flow)
+    * [The XC-Transfer flow](#the-xc-transfer-flow)
 * [Implementation considerations using Substrate and Polkadot XCM](#implementation-considerations-using-substrate-and-polkadot-xcm)
     * [Cross-chain NFT identification](#cross-chain-nft-identification)
     * [The Staging Area pallet](#the-staging-area-pallet)
-    * [The flow using the Staging Area pallet](#the-flow-using-the-staging-area-pallet)
+    * [The XC-Transfer flow using the Staging Area pallet](#the-xc-transfer-flow-using-the-staging-area-pallet)
     * [The Staging Area pallet's pseudocode](#the-staging-area-pallets-pseudocode)
 
 ## Introduction
@@ -132,7 +132,7 @@ Note 1: If the *Clearance Procedure* has failed, the derivative NFT is still in 
 
 Note 2: The exact mechanism of providing the metadata blob to the chain (to be checked during the *Clearance Procedure*) is arbitrary and is out of the scope of this document.
 
-### The flow
+### The XC-Transfer flow
 
 For a better description, let's provide examples of using the *Staging Area* and the *Clearance Procedure* combination in various scenarios.
 
@@ -141,9 +141,9 @@ Let's describe a journey of a single NFT, beginning with the *originating chain*
 * A cross-transfer from the non-reserve Chain A to the non-reserve Chain B
 * A cross-transfer from the non-reserve Chain B back to the reserve chain
 
-### Reserve Chain → Non-reserve Chain A
+#### Reserve Chain → Non-reserve Chain A
 
-#### On the reserve chain
+##### On the reserve chain
 
 1. Move the NFT to the *Staging Area* and compute the hash of the NFT's metadata container on-chain
 2. Cross-transfer the NFT to the non-reserve Chain A:
@@ -152,7 +152,7 @@ Let's describe a journey of a single NFT, beginning with the *originating chain*
 
 Note: After the cross-transfer, the NFT **must** remain in the *Staging Area* **of the reserve chain.**
 
-#### On the non-reserve Chain A
+##### On the non-reserve Chain A
 
 1. Mint the NFT inside the *Staging Area* upon receiving the *cross-chain NFT id* and the metadata hash.
 2. The derivative NFT remains in the *Staging Area* until one of the following actions is performed by the owner of the NFT:
@@ -160,29 +160,29 @@ Note: After the cross-transfer, the NFT **must** remain in the *Staging Area* **
 
     * The owner cross-transfers the NFT to another chain. The NFT is removed from the *Staging Area*.
 
-### Non-reserve Chain A → Another non-reserve Chain B
+#### Non-reserve Chain A → Another non-reserve Chain B
 
-#### On Chain A
+##### On Chain A
 
 1. If the owner passed the NFT through the *Clearance Procedure*, they should first move the NFT to the *Staging Area*.
 2. When the NFT is located inside the *Staging Area*, the owner can cross-transfer it to another chain. For instance, they can transfer the NFT to the non-reserve Chain B. Chain A asks the reserve chain to transfer the "real" NFT to Chain B. The derivative NFT **must** be burned on Chain A since the "real" NFT will no longer back it on the reserve chain.
 
-#### On the reserve chain
+##### On the reserve chain
 
 Upon receiving the transfer request from Chain A, the reserve chain will update the owner of the NFT inside the *Staging Area* (Chain B's sovereign account will be the new owner) and send the *cross-chain NFT id* and the metadata hash to Chain B.
 
-#### On Chain B
+##### On Chain B
 
 1. Mint the NFT inside the *Staging Area* upon receiving the *cross-chain NFT id* and the metadata hash.
 2. The second step is the same as with Chain A when receiving an NFT.
 
-### Non-reserve Chain B → Reserve Chain
+#### Non-reserve Chain B → Reserve Chain
 
-#### On Chain B
+##### On Chain B
 
 Both steps are the same as with Chain A when cross-transferring an NFT.
 
-#### On the reserve chain
+##### On the reserve chain
 
 1. Upon receiving the transfer request from Chain B, the reserve chain will update the owner of the NFT inside the *Staging Area*.
 2. The owner of the NFT can then either:
@@ -296,9 +296,9 @@ The commented pseudocode of such a pallet is provided [below](#the-staging-area-
 
 Any non-standard trait or type is defined in the pseudocode itself.
 
-### The flow using the Staging Area pallet
+### The XC-Transfer flow using the Staging Area pallet
 
-To illustrate the usage of the *Staging Area* pallet, let's map each action described in [the flow](#the-flow) section to extrinsic calls of the *Staging Area* pallet and XCM Programs execution.
+To illustrate the usage of the *Staging Area* pallet, let's map each action described in [The XC-Transfer flow](#the-xc-transfer-flow) section to extrinsic calls of the *Staging Area* pallet and XCM Programs execution.
 
 #### Reserve Chain → Non-reserve Chain A
 
