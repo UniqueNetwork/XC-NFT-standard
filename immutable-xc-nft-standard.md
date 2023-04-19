@@ -85,7 +85,7 @@ The *Staging Area* is a dedicated place for *cross-chain NFT ids* and metadata h
 
 Although the *Staging Area* seems to be optional on the *originating chain*, it should have the *Staging Area* to separate concerns: when an NFT is cross-transferred to another chain, the "real" NFT on the *originating chain* should be moved to the *Staging Area* account; thus the NFT is "taken" from the business logic of the *originating chain*, and the *Staging Area* guarantees that NFT won't change while the NFT is backing a derivative on another chain (i.e., while it is not cross-transferred back to the *originating chain*).
 
-Also, the chain that is the *originating chain* for one set of NFTs could be non-originating for others, so it **must** have the Staging Area.
+Also, a chain can be the *originating chain* only for its native NFTs. Therefore, to accept foreign NFTs, such a chain also **must** have the Staging Area.
 
 #### On a non-reserve chain
 
