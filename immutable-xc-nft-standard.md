@@ -118,7 +118,7 @@ Note: The transfer of the "real" NFT on the originating chain must happen **only
 
 ### The Clearance Procedure
 
-When the derivative NFT is located in the *Staging Area*, the *destination non-reserve chain* can execute the *Clearance Precedure* of the given metadata blob for the given NFT on the *Beneficiery's* demand.
+When the derivative NFT is located in the *Staging Area*, the *destination non-reserve chain* can execute the *Clearance Procedure* of the given metadata blob for the given NFT on the *Beneficiary's* demand.
 
 During the *Clearance Procedure*, the destination chain **must** compute the hash of the metadata blob using the algorithm defined by the `hashingAlgorithmId` field of the blob. Recall that the metadata blob **must** be a valid *Metadata Container*; otherwise, the *Clearance Procedure* **must** fail with an error and leave the derivative NFT in the *Staging Area* untouched.
 
