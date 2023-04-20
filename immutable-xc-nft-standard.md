@@ -182,7 +182,7 @@ Upon receiving the transfer request from Chain A, the reserve chain will update 
 
 #### Non-reserve Chain B → Reserve Chain
 
-This scenario continues from the NFT being sent to chain B from chain A.
+This scenario continues from the NFT being sent to Chain B from Chain A.
 
 ##### On Chain B
 
