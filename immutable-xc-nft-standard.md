@@ -114,6 +114,8 @@ The "return" operation shouldn't require the metadata checking since the NFT is 
 The "return" action **must** lead to removing the derivative NFT from the *Staging Area*.
 However, when the owner cross-transfers the NFT to another chain, the "real" NFT **must** remain in the *Staging Area* of the reserve chain until the NFT is cross-transferred back.
 
+Note: The transfer of the "real" NFT on the originating chain must happen **only** when the derivative NFT is burned (the reserve-based model implies this). However, it is the sole responsibility of the chain hosting the derivative NFT to burn it when transferred to another chain.
+
 ### The Clearance Procedure
 
 When the derivative NFT is located in the *Staging Area*, the *destination non-reserve chain* can execute the *Clearance Precedure* of the given metadata blob for the given NFT on the *Beneficiery's* demand.
@@ -162,6 +164,8 @@ Note: After the cross-transfer, the NFT **must** remain in the *Staging Area* **
 
 #### Non-reserve Chain A → Another non-reserve Chain B
 
+This scenario starts with the NFT originating on the reserve chain being present as a derivative NFT on Chain A.
+
 ##### On Chain A
 
 1. If the owner passed the NFT through the *Clearance Procedure*, they should first move the NFT to the *Staging Area*.
@@ -178,6 +182,8 @@ Upon receiving the transfer request from Chain A, the reserve chain will update 
 
 #### Non-reserve Chain B → Reserve Chain
 
+This scenario continues from the NFT being sent to chain B from chain A.
+
 ##### On Chain B
 
 Both steps are the same as with Chain A when cross-transferring an NFT.
@@ -193,7 +199,7 @@ Both steps are the same as with Chain A when cross-transferring an NFT.
 
 This section describes the considerations for implementing the standard using the `Substrate` and the `Polkadot XCM`.
 
-It is **only an example**, not the standard itself. The standard is described in the above sections.
+The following is only an example of the implementation of the standard described in the sections above, not the general solution.
 
 ### Cross-chain NFT identification
 
